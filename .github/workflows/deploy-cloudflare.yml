@@ -1,7 +1,8 @@
 name: Deploy CAPITÃO to Cloudflare Workers
 
-# Manual until Cloudflare secrets/variables are configured in this repository.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -14,7 +15,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -25,19 +26,49 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
       - name: Validate environment
         run: node scripts/check-cloudflare-env.mjs production
+
       - name: Security scan
         run: npm run security:scan
+
       - name: Typecheck
         run: npm run typecheck
+
       - name: Build for Cloudflare
         run: npm run cf:build
+
       - name: Deploy Worker
         run: npx @vinext/cloudflare deploy --skip-build
+
+      - name: Validate production dynamic routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://capitao-preview.luiz-ztx.workers.dev"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/153 Safari/537.36"
+          for path in /explorar /admin /perfil/cadastros; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              code=$(curl -A "$UA" -L -sS -o "/tmp/capitao-response.html" -w "%{http_code}" "$BASE$path" || true)
+              echo "$path attempt $attempt -> HTTP $code"
+              if [ "$code" = "200" ]; then
+                ok=1
+                break
+              fi
+              sleep 8
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Production route failed: $path"
+              exit 1
+            fi
+          done
