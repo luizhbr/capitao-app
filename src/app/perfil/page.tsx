@@ -29,23 +29,31 @@ export default function PerfilPage() {
   }, [supabase]);
 
   async function signIn() {
+    if (!supabase) {
+      setMessage("Autenticação indisponível neste ambiente.");
+      return;
+    }
     setBusy(true);
     setMessage("");
-    const { data, error } = await supabase!.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) return setMessage(error.message);
     setUserEmail(data.user.email ?? email);
-    const { data: rows } = (await supabase?.from("listings")
+    const { data: rows } = await supabase.from("listings")
       .select("id,name,category,status")
-      .order("created_at", { ascending: false })) ?? { data: [] };
+      .order("created_at", { ascending: false });
     setListings((rows ?? []) as never);
     setMessage("Login realizado.");
   }
 
   async function signUp() {
+    if (!supabase) {
+      setMessage("Autenticação indisponível neste ambiente.");
+      return;
+    }
     setBusy(true);
     setMessage("");
-    const { data, error } = await supabase!.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { display_name: email.split("@")[0] } },
@@ -54,6 +62,28 @@ export default function PerfilPage() {
     if (error) return setMessage(error.message);
     setUserEmail(data.user?.email ?? null);
     setMessage(data.session ? "Conta criada e sessão iniciada." : "Conta criada. Confirme seu e-mail para entrar.");
+  }
+
+  async function signInWithGoogle() {
+    if (!supabase) {
+      setMessage("Autenticação indisponível neste ambiente.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/perfil`,
+      },
+    });
+
+    if (error) {
+      setBusy(false);
+      setMessage(error.message);
+    }
   }
 
   async function signOut() {
@@ -119,6 +149,22 @@ export default function PerfilPage() {
           </div>
         ) : (
           <div className="mt-5 space-y-3">
+            <button
+              type="button"
+              onClick={signInWithGoogle}
+              disabled={busy || !configured}
+              className="flex min-h-12 w-full items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-sm font-bold shadow-sm disabled:opacity-40"
+            >
+              <span className="grid size-6 place-items-center rounded-full bg-[var(--capitao-neutral-100)] text-xs font-extrabold">G</span>
+              Continuar com Google
+            </button>
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="h-px flex-1 bg-black/10" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--capitao-text-secondary)]">ou</span>
+              <div className="h-px flex-1 bg-black/10" />
+            </div>
+
             <label className="block">
               <span className="mb-1 block text-xs font-semibold">E-mail</span>
               <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 outline-none focus:border-[var(--capitao-primary-500)]" placeholder="voce@email.com" />
@@ -128,10 +174,10 @@ export default function PerfilPage() {
               <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" minLength={8} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 outline-none focus:border-[var(--capitao-primary-500)]" placeholder="Mínimo 8 caracteres" />
             </label>
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <button disabled={busy || !email || password.length < 8} onClick={signIn} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--capitao-primary-900)] px-4 text-sm font-bold text-white disabled:opacity-40">
+              <button disabled={busy || !configured || !email || password.length < 8} onClick={signIn} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--capitao-primary-900)] px-4 text-sm font-bold text-white disabled:opacity-40">
                 <LogIn className="size-4" /> Entrar
               </button>
-              <button disabled={busy || !email || password.length < 8} onClick={signUp} className="min-h-12 rounded-2xl bg-[var(--capitao-primary-100)] px-4 text-sm font-bold text-[var(--capitao-primary-900)] disabled:opacity-40">
+              <button disabled={busy || !configured || !email || password.length < 8} onClick={signUp} className="min-h-12 rounded-2xl bg-[var(--capitao-primary-100)] px-4 text-sm font-bold text-[var(--capitao-primary-900)] disabled:opacity-40">
                 Criar conta
               </button>
             </div>

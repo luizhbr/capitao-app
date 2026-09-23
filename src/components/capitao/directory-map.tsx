@@ -55,9 +55,25 @@ export function DirectoryMap({
       mapRef.current = map;
 
       for (const point of points) {
-        const popup = new maplibregl.Popup({ offset: 24, closeButton: false }).setHTML(
-          `<a href="/explorar/${point.id}" style="font-weight:800;text-decoration:none;color:#0B5135">${point.name}</a><br/><span style="font-size:11px;color:#696E6B">${point.categoryLabel}</span>`,
-        );
+        const popupContent = document.createElement("div");
+        const link = document.createElement("a");
+        link.href = `/explorar/${encodeURIComponent(point.id)}`;
+        link.textContent = point.name;
+        link.style.fontWeight = "800";
+        link.style.textDecoration = "none";
+        link.style.color = "#0B5135";
+
+        const subtitle = document.createElement("span");
+        subtitle.textContent = point.categoryLabel;
+        subtitle.style.fontSize = "11px";
+        subtitle.style.color = "#696E6B";
+
+        popupContent.append(link, document.createElement("br"), subtitle);
+
+        const popup = new maplibregl.Popup({
+          offset: 24,
+          closeButton: false,
+        }).setDOMContent(popupContent);
 
         new maplibregl.Marker()
           .setLngLat([point.longitude, point.latitude])

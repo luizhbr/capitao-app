@@ -16,6 +16,14 @@ const categoryLabels: Record<string, string> = {
   tech: "Tecnologia",
 };
 
+type ListingMedia = {
+  id: string;
+  media_type: "logo" | "cover" | "gallery";
+  storage_path: string;
+  position: number;
+  url: string;
+};
+
 type FullListing = {
   id: string;
   name: string;
@@ -29,10 +37,12 @@ type FullListing = {
   longitude: number | null;
   status: string;
   is_active: boolean;
+  media: ListingMedia[];
 };
 
 async function getListing(id: string): Promise<FullListing | null> {
   if (!supabaseConfigured()) return null;
+
   try {
     const supabase = await createClient();
     const { data } = await supabase
@@ -40,11 +50,39 @@ async function getListing(id: string): Promise<FullListing | null> {
       .select("id,name,category,description,phone,whatsapp,address,neighborhood,latitude,longitude,status,is_active")
       .eq("id", id)
       .maybeSingle();
+
     if (!data) return null;
-    const l = data as unknown as FullListing;
-    // pending/rejected nunca são públicos (RLS já filtra para anônimos; reforço aqui)
-    if (l.status !== "published" || !l.is_active) return null;
-    return l;
+
+    const listing = data as unknown as Omit<FullListing, "media">;
+    if (listing.status !== "published" || !listing.is_active) return null;
+
+    const { data: mediaRows } = await supabase
+      .from("listing_media")
+      .select("id,media_type,storage_path,position")
+      .eq("listing_id", id)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    const signedMedia = await Promise.all(
+      (mediaRows ?? []).map(async (item) => {
+        const row = item as {
+          id: string;
+          media_type: "logo" | "cover" | "gallery";
+          storage_path: string;
+          position: number;
+        };
+
+        const { data: signed, error } = await supabase.storage
+          .from("listing-media")
+          .createSignedUrl(row.storage_path, 60 * 60);
+
+        if (error || !signed?.signedUrl) return null;
+        return { ...row, url: signed.signedUrl } satisfies ListingMedia;
+      }),
+    );
+
+    const media = signedMedia.filter((item): item is ListingMedia => item !== null);
+    return { ...listing, media };
   } catch {
     return null;
   }
@@ -60,6 +98,10 @@ export default async function PublicListingPage({
   if (!listing) notFound();
 
   const whatsapp = listing.whatsapp ? listing.whatsapp.replace(/\D/g, "") : "";
+  const logo = listing.media.find((item) => item.media_type === "logo");
+  const cover = listing.media.find((item) => item.media_type === "cover");
+  const gallery = listing.media.filter((item) => item.media_type === "gallery");
+  const hasCoordinates = listing.latitude !== null && listing.longitude !== null;
 
   return (
     <main className="mx-auto min-h-svh max-w-md px-4 pb-32 pt-6 sm:px-5">
@@ -67,7 +109,14 @@ export default async function PublicListingPage({
         <ArrowLeft className="size-4" /> Explorar
       </Link>
 
-      {listing.latitude && listing.longitude ? (
+      {cover ? (
+        <div className="mt-5 overflow-hidden rounded-[var(--radius-featured)] bg-[var(--capitao-neutral-100)] shadow-[var(--shadow-featured)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={cover.url} alt={`Capa de ${listing.name}`} className="aspect-[16/9] w-full object-cover" />
+        </div>
+      ) : null}
+
+      {hasCoordinates ? (
         <div className="mt-5 overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-card)]">
           <div id="public-map" className="h-56 w-full" />
         </div>
@@ -75,8 +124,13 @@ export default async function PublicListingPage({
 
       <article className="mt-5 rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-card)]">
         <div className="flex items-start gap-4">
-          <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-[var(--capitao-primary-100)]">
-            <Building2 className="size-8 text-[var(--capitao-primary-900)]" />
+          <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[var(--capitao-primary-100)]">
+            {logo ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={logo.url} alt={`Logo de ${listing.name}`} className="size-full object-cover" />
+            ) : (
+              <Building2 className="size-8 text-[var(--capitao-primary-900)]" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <span className="rounded-full bg-[var(--capitao-neutral-100)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--capitao-text-secondary)]">
@@ -113,7 +167,7 @@ export default async function PublicListingPage({
               <MessageCircle className="size-4" /> WhatsApp
             </a>
           ) : null}
-          {listing.latitude && listing.longitude ? (
+          {hasCoordinates ? (
             <a
               href={`https://www.openstreetmap.org/?mlat=${listing.latitude}&mlon=${listing.longitude}#map=17/${listing.latitude}/${listing.longitude}`}
               target="_blank"
@@ -126,8 +180,26 @@ export default async function PublicListingPage({
         </div>
       </article>
 
-      {listing.latitude && listing.longitude ? (
-        <PublicListingMap lat={listing.latitude} lng={listing.longitude} containerId="public-map" />
+      {gallery.length ? (
+        <section className="mt-5 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-card)]">
+          <h2 className="text-lg font-extrabold">Galeria</h2>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {gallery.map((item) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={item.id}
+                src={item.url}
+                alt={`Foto de ${listing.name}`}
+                loading="lazy"
+                className="aspect-square w-full rounded-2xl object-cover"
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {hasCoordinates ? (
+        <PublicListingMap lat={listing.latitude!} lng={listing.longitude!} containerId="public-map" />
       ) : null}
     </main>
   );
