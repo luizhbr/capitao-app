@@ -19,3 +19,4 @@ dist/
 compose.override.yml
 
 *.tsbuildinfo
+"wrangler.toml.bak"  
