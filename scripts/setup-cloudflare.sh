@@ -8,7 +8,7 @@ echo "[CAPITÃO] Verificando compatibilidade com vinext..."
 npx vinext check
 
 echo "[CAPITÃO] Gerando tipos Wrangler..."
-npx wrangler types --config wrangler.toml || true
+npx wrangler types --config wrangler.jsonc || true
 
 echo ""
 echo "Próximos passos:"
