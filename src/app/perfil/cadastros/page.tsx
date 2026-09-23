@@ -26,22 +26,23 @@ export default function MeusCadastrosPage() {
   const [listings, setListings] = useState<OwnListing[]>([]);
 
   useEffect(() => {
-    if (!supabase) {
-      setAuthed(false);
-      return;
-    }
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) {
-        setAuthed(false);
-        return;
-      }
-      setAuthed(true);
+    if (!supabase) return;
+    let alive = true;
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!alive) return;
+      const isAuthed = Boolean(data.user);
+      setAuthed(isAuthed);
+      if (!isAuthed) return;
       const { data: rows } = await supabase
         .from("listings")
         .select("id,name,category,status,moderation_note")
         .order("created_at", { ascending: false });
-      setListings((rows ?? []) as unknown as OwnListing[]);
-    });
+      if (alive) setListings((rows ?? []) as never);
+    })();
+    return () => {
+      alive = false;
+    };
   }, [supabase]);
 
   if (authed === null) {

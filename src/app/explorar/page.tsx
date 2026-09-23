@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { ArrowLeft, Plus, Search } from "lucide-react";
 import { BottomNav } from "@/components/capitao/bottom-nav";
 import { ListingCard, type DirectoryListing } from "@/components/capitao/listing-card";
@@ -105,7 +106,7 @@ export default async function ExplorarPage({
             : `/explorar?categoria=${key}${query ? `&busca=${encodeURIComponent(query)}` : ""}`;
 
           return (
-            <Link key={key} href={href} className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${active ? "bg-[var(--capitao-primary-900)] text-white" : "bg-white text-[var(--capitao-text-secondary)] shadow-sm"}`}>
+            <Link key={key} href={href as Route} className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${active ? "bg-[var(--capitao-primary-900)] text-white" : "bg-white text-[var(--capitao-text-secondary)] shadow-sm"}`}>
               {label}
             </Link>
           );

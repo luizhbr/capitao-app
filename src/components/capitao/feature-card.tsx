@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ export function FeatureCard({
 }) {
   return (
     <Link
-      href={href}
+      href={href as Route}
       className={cn(
         "group relative min-h-32 w-full overflow-hidden rounded-[var(--radius-card)] p-4 text-left shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 active:scale-[0.98]",
         tones[tone],
