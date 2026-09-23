@@ -21,7 +21,7 @@
     "cf:deploy:staging": "sh ./scripts/deploy-cloudflare.sh staging",
     "cf:deploy:dry": "sh ./scripts/deploy-cloudflare.sh production --dry-run",
     "cf:whoami": "wrangler whoami",
-    "cf:types": "wrangler types --config wrangler.toml",
+    "cf:types": "wrangler types --config wrangler.jsonc",
     "docker:build": "docker build -t capitao:local .",
     "docker:run": "docker run --rm -p 3000:3000 --env-file .env.local capitao:local",
     "db:start": "supabase start",
