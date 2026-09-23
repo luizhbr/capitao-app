@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, LogIn, LogOut, Plus, UserRound } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, supabaseEnvConfigured } from "@/lib/supabase/client";
 
 export default function PerfilPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const configured = supabaseEnvConfigured();
+  const supabase = useMemo(() => (configured ? createClient() : null), [configured]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -15,15 +16,14 @@ export default function PerfilPage() {
   const [listings, setListings] = useState<Array<{ id: string; name: string; category: string; status: string }>>([]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    (supabase?.auth.getUser() ?? Promise.resolve({ data: { user: null } })).then(async ({ data }) => {
       const currentEmail = data.user?.email ?? null;
       setUserEmail(currentEmail);
       if (currentEmail) {
-        const { data: rows } = await supabase
-          .from("listings")
+        const { data: rows } = (await supabase?.from("listings")
           .select("id,name,category,status")
-          .order("created_at", { ascending: false });
-        setListings(rows ?? []);
+          .order("created_at", { ascending: false })) ?? { data: [] };
+        setListings((rows ?? []) as never);
       }
     });
   }, [supabase]);
@@ -31,22 +31,21 @@ export default function PerfilPage() {
   async function signIn() {
     setBusy(true);
     setMessage("");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase!.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) return setMessage(error.message);
     setUserEmail(data.user.email ?? email);
-    const { data: rows } = await supabase
-      .from("listings")
+    const { data: rows } = (await supabase?.from("listings")
       .select("id,name,category,status")
-      .order("created_at", { ascending: false });
-    setListings(rows ?? []);
+      .order("created_at", { ascending: false })) ?? { data: [] };
+    setListings((rows ?? []) as never);
     setMessage("Login realizado.");
   }
 
   async function signUp() {
     setBusy(true);
     setMessage("");
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase!.auth.signUp({
       email,
       password,
       options: { data: { display_name: email.split("@")[0] } },
@@ -58,7 +57,7 @@ export default function PerfilPage() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await supabase?.auth.signOut();
     setUserEmail(null);
     setListings([]);
     setMessage("Sessão encerrada.");

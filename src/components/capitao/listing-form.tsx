@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, LogIn } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, supabaseEnvConfigured } from "@/lib/supabase/client";
 
 const categories = [
   ["commerce", "Comércio"],
@@ -15,13 +15,15 @@ const categories = [
 ] as const;
 
 export function ListingForm() {
-  const supabase = useMemo(() => createClient(), []);
+  const configured = supabaseEnvConfigured();
+  const supabase = useMemo(() => (configured ? createClient() : null), [configured]);
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => setAuthenticated(Boolean(data.user)));
   }, [supabase]);
 
@@ -42,6 +44,7 @@ export function ListingForm() {
       neighborhood: String(form.get("neighborhood") ?? "").trim() || null,
     };
 
+    if (!supabase) return;
     const { error } = await supabase.from("listings").insert(payload);
     setBusy(false);
 
@@ -57,6 +60,17 @@ export function ListingForm() {
     event.currentTarget.reset();
     setSuccess(true);
     setMessage("Cadastro enviado. Ele aparece em Meus cadastros e ficará público após aprovação.");
+  }
+
+  if (!configured) {
+    return (
+      <div className="rounded-[var(--radius-card)] bg-white p-6 shadow-[var(--shadow-card)]">
+        <h2 className="text-xl font-extrabold">Cadastro indisponível</h2>
+        <p className="mt-2 text-sm leading-5 text-[var(--capitao-text-secondary)]">
+          O diretório ainda não está conectado ao banco de dados neste ambiente.
+        </p>
+      </div>
+    );
   }
 
   if (authenticated === null) {
