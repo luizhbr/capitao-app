@@ -15,10 +15,19 @@
     "cf:dev": "vinext dev --port 3001",
     "cf:build": "vinext build",
     "cf:preview": "npm run cf:build && wrangler dev",
+    "cf:deploy": "sh ./scripts/deploy-cloudflare.sh production",
+    "cf:deploy:staging": "sh ./scripts/deploy-cloudflare.sh staging",
+    "cf:deploy:dry": "sh ./scripts/deploy-cloudflare.sh production --dry-run",
+    "cf:whoami": "wrangler whoami",
+    "cf:types": "wrangler types --config wrangler.toml",
+    "docker:build": "docker build -t capitao:local .",
+    "docker:run": "docker run --rm -p 3000:3000 --env-file .env.local capitao:local",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:lint": "supabase db lint",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "db:stop": "supabase stop",
+    "db:verify": "npm run db:reset && npm run db:lint && npm run db:test"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "5.3.0",
