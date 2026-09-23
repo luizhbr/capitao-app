@@ -3,7 +3,6 @@ import { Bell, BriefcaseBusiness, Map, Search, ShoppingBag, Store, UtensilsCross
 import { BottomNav } from "@/components/capitao/bottom-nav";
 import { FeatureCard } from "@/components/capitao/feature-card";
 import { ProjectCard, type PublicProject } from "@/components/capitao/project-card";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 async function getFeaturedProject(): Promise<PublicProject | undefined> {
@@ -57,9 +56,9 @@ export default async function HomePage() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/75">Capitão hoje</p>
         <h2 className="mt-3 max-w-[16rem] text-2xl font-extrabold leading-tight">Uma cidade conectada a oportunidades.</h2>
         <p className="mt-2 max-w-[17rem] text-sm text-white/75">Comércio, serviços, turismo, cooperativas e projetos num só lugar.</p>
-        <Button asChild className="mt-5 bg-white text-[var(--capitao-primary-900)] hover:bg-white/90">
-          <Link href="/explorar">Explorar cidade</Link>
-        </Button>
+        <Link href="/explorar" className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-[var(--capitao-primary-900)] transition hover:bg-white/90 active:scale-[0.98]">
+          Explorar cidade
+        </Link>
       </section>
 
       <section className="mt-7">
