@@ -1,30 +1,45 @@
 import Link from "next/link";
-import { Clock, Eye, ListChecks, XCircle } from "lucide-react";
+import { Clock, Eye, ListChecks, Rows3, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/security/public-config";
 
 export const dynamic = "force-dynamic";
 
-type Counts = { pending: number; published: number; rejected: number };
+type Counts = {
+  pending: number;
+  published: number;
+  rejected: number;
+  total: number;
+};
 
 async function getCounts(): Promise<Counts> {
-  if (!supabaseConfigured()) return { pending: 0, published: 0, rejected: 0 };
+  const empty = { pending: 0, published: 0, rejected: 0, total: 0 };
+  if (!supabaseConfigured()) return empty;
+
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("listings")
-      .select("status");
-    if (error) return { pending: 0, published: 0, rejected: 0 };
-    const rows = (data ?? []) as Array<{ status: string }>;
-    // Nota: com RLS ativo o usuário comum só vê publicados + próprios; o painel
-    // de visão geral usa contagens seguras via RPC quando disponível.
+    const { data, error } = await supabase.rpc("moderation_counts");
+
+    if (error || !data) return empty;
+
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row || typeof row !== "object") return empty;
+
+    const value = row as {
+      pending?: number | string;
+      published?: number | string;
+      rejected?: number | string;
+      total?: number | string;
+    };
+
     return {
-      pending: rows.filter((r) => r.status === "pending").length,
-      published: rows.filter((r) => r.status === "published").length,
-      rejected: rows.filter((r) => r.status === "rejected").length,
+      pending: Number(value.pending ?? 0),
+      published: Number(value.published ?? 0),
+      rejected: Number(value.rejected ?? 0),
+      total: Number(value.total ?? 0),
     };
   } catch {
-    return { pending: 0, published: 0, rejected: 0 };
+    return empty;
   }
 }
 
@@ -33,8 +48,9 @@ export default async function AdminOverviewPage() {
 
   const cards = [
     { label: "Pendentes", value: counts.pending, icon: Clock, tone: "bg-amber-50 text-amber-700" },
-    { value: counts.published, label: "Publicados", icon: Eye, tone: "bg-emerald-50 text-emerald-700" },
-    { value: counts.rejected, label: "Rejeitados", icon: XCircle, tone: "bg-rose-50 text-rose-700" },
+    { label: "Publicados", value: counts.published, icon: Eye, tone: "bg-emerald-50 text-emerald-700" },
+    { label: "Rejeitados", value: counts.rejected, icon: XCircle, tone: "bg-rose-50 text-rose-700" },
+    { label: "Total", value: counts.total, icon: Rows3, tone: "bg-slate-100 text-slate-700" },
   ] as const;
 
   return (
@@ -44,7 +60,7 @@ export default async function AdminOverviewPage() {
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Visão geral</h1>
       </header>
 
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map(({ label, value, icon: Icon, tone }) => (
           <div key={label} className="rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-card)]">
             <div className={`grid size-10 place-items-center rounded-2xl ${tone}`}>
