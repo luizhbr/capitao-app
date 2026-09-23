@@ -1,8 +1,7 @@
 name: Deploy CAPITÃO to Cloudflare Workers
 
+# Manual until Cloudflare secrets/variables are configured in this repository.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
