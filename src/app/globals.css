@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans: "Manrope Variable", "Inter", "Roboto", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+}
+
+:root {
+  --background:#f7f8f5; --foreground:#151817; --primary:#0b5135; --primary-foreground:#fff;
+  --capitao-primary-900:#083d29; --capitao-primary-700:#0b5135; --capitao-primary-500:#297a56;
+  --capitao-primary-100:#dcede3; --capitao-primary-050:#eef7f1;
+  --capitao-tech-600:#4f68d9; --capitao-tech-100:#e5e9ff;
+  --capitao-tourism-600:#e88a3d; --capitao-tourism-100:#fce7d2;
+  --capitao-solar-600:#e5b52f; --capitao-solar-100:#fff3c8;
+  --capitao-agro-600:#6b8951; --capitao-agro-100:#e6efdd;
+  --capitao-coop-600:#7255b8; --capitao-coop-100:#ece6fa;
+  --capitao-community-600:#3997b8; --capitao-community-100:#ddf1f7;
+  --capitao-text-secondary:#646a67;
+  --radius-card:20px; --radius-featured:28px;
+  --shadow-card:0 4px 16px rgb(10 35 24 / 8%);
+  --shadow-featured:0 9px 28px rgb(10 35 24 / 12%);
+  --shadow-floating:0 14px 40px rgb(10 35 24 / 16%);
+}
+*{box-sizing:border-box}
+html{background:var(--background);color:var(--foreground);-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 90% -10%,rgb(220 237 227 / 70%),transparent 30rem),var(--background);font-family:var(--font-sans);text-rendering:optimizeLegibility}
+button,a{touch-action:manipulation}
+::selection{background:var(--capitao-primary-100);color:var(--capitao-primary-900)}

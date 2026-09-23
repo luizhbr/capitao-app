@@ -1,0 +1,5 @@
+import { ArrowRight, Sun } from "lucide-react";
+
+export function ProjectCard() {
+  return <article className="rounded-[var(--radius-featured)] bg-[var(--capitao-solar-100)] p-5 shadow-[var(--shadow-featured)]"><div className="flex items-start gap-4"><div className="grid size-16 shrink-0 place-items-center rounded-[22px] bg-white/75 shadow-sm"><Sun className="size-8 text-[#b9850d]"/></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><p className="text-base font-bold">Energia Solar Cooperativa</p><p className="mt-1 text-xs text-[var(--capitao-text-secondary)]">Projeto piloto</p></div><button className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--capitao-primary-700)] text-white" aria-label="Abrir projeto"><ArrowRight className="size-4"/></button></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80"><div className="h-full w-[42%] rounded-full bg-[var(--capitao-primary-700)]"/></div><p className="mt-2 text-xs font-medium">Estudo de viabilidade</p></div></div></article>;
+}

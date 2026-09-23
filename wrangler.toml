@@ -1,0 +1,21 @@
+name = "capitao-app"
+main = "vinext/server/app-router-entry"
+compatibility_date = "2026-09-23"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = true
+keep_vars = true
+
+[assets]
+not_found_handling = "none"
+
+[vars]
+CAPITAO_ENV = "production"
+
+[env.staging]
+name = "capitao-app-staging"
+workers_dev = true
+preview_urls = true
+
+[env.staging.vars]
+CAPITAO_ENV = "staging"
