@@ -17,3 +17,5 @@ supabase/.temp/
 dist/
 .vinext/
 compose.override.yml
+
+*.tsbuildinfo
