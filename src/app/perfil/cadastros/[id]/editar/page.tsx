@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { createClient, supabaseEnvConfigured } from "@/lib/supabase/client";
 import { MapPicker } from "@/components/capitao/map-picker";
 import { MapClearButton } from "@/components/capitao/map-clear-button";
@@ -17,8 +17,15 @@ const categories = [
   ["tech", "Tecnologia"],
 ] as const;
 
-const MEDIA_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MEDIA_MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_GALLERY_ITEMS = 12;
+
+type MediaRow = {
+  id: string;
+  media_type: "logo" | "cover" | "gallery";
+  storage_path: string;
+};
 
 export default function EditarCadastroPage() {
   const configured = supabaseEnvConfigured();
@@ -31,11 +38,11 @@ export default function EditarCadastroPage() {
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState(false);
   const [mediaBusy, setMediaBusy] = useState<string | null>(null);
-  const [media, setMedia] = useState<Array<{ id: string; media_type: string; storage_path: string }>>([]);
+  const [media, setMedia] = useState<MediaRow[]>([]);
 
   useEffect(() => {
     if (!id || !supabase) return;
-    // RLS garante: só o dono vê o próprio registro aqui.
+
     supabase
       .from("listings")
       .select("id,name,category,description,phone,whatsapp,address,neighborhood,latitude,longitude,status")
@@ -46,12 +53,14 @@ export default function EditarCadastroPage() {
           setState("notfound");
           return;
         }
+
         const form = document.querySelector("form#edit-listing") as HTMLFormElement | null;
         if (form) {
           const set = (name: string, value: string | null) => {
             const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
             if (el) el.value = value ?? "";
           };
+
           set("name", (data as Record<string, string | null>).name);
           set("category", (data as Record<string, string | null>).category);
           set("description", (data as Record<string, string | null>).description);
@@ -59,27 +68,43 @@ export default function EditarCadastroPage() {
           set("whatsapp", (data as Record<string, string | null>).whatsapp);
           set("address", (data as Record<string, string | null>).address);
           set("neighborhood", (data as Record<string, string | null>).neighborhood);
+
           const lat = (data as Record<string, number | null>).latitude;
           const lng = (data as Record<string, number | null>).longitude;
           set("latitude", lat === null ? "" : String(lat));
           set("longitude", lng === null ? "" : String(lng));
         }
+
         setState("ready");
       });
   }, [supabase, id]);
 
   useEffect(() => {
     if (state !== "ready" || !id || !supabase) return;
+
     supabase
       .from("listing_media")
       .select("id,media_type,storage_path")
       .eq("listing_id", id)
-      .then(({ data }) => setMedia((data ?? []) as never));
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setMedia((data ?? []) as MediaRow[]));
   }, [supabase, id, state]);
+
+  async function refreshMedia() {
+    if (!id || !supabase) return;
+    const { data } = await supabase
+      .from("listing_media")
+      .select("id,media_type,storage_path")
+      .eq("listing_id", id)
+      .order("created_at", { ascending: true });
+
+    setMedia((data ?? []) as MediaRow[]);
+  }
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!id || !supabase) return;
+
     setBusy(true);
     setSaved(false);
     setMessage("");
@@ -96,7 +121,6 @@ export default function EditarCadastroPage() {
       return;
     }
 
-    // Campos protegidos (owner_id, status, is_active, created_at) NUNCA vão no payload.
     const payload = {
       name: String(form.get("name") ?? "").trim(),
       category: String(form.get("category") ?? ""),
@@ -111,57 +135,150 @@ export default function EditarCadastroPage() {
 
     const { error } = await supabase.from("listings").update(payload).eq("id", id);
     setBusy(false);
+
     if (error) {
       setMessage(error.code === "42501" ? "Você só pode editar seus próprios cadastros." : error.message);
       return;
     }
+
     setSaved(true);
-    setMessage("Alterações salvas.");
+    setMessage("Alterações salvas. Se o cadastro estava publicado, ele volta para análise.");
   }
 
-  async function uploadMedia(kind: "logo" | "cover", file: File | null) {
+  async function uploadMedia(kind: "logo" | "cover" | "gallery", file: File | null) {
     if (!id || !supabase || !file) return;
+
     if (!ACCEPTED_TYPES.includes(file.type)) {
       setMessage("Formato inválido. Use JPEG, PNG ou WebP.");
       return;
     }
+
     if (file.size > MEDIA_MAX_BYTES) {
       setMessage("Imagem muito grande. Limite de 5 MB.");
       return;
     }
+
+    if (kind === "gallery" && media.filter((item) => item.media_type === "gallery").length >= MAX_GALLERY_ITEMS) {
+      setMessage(`A galeria aceita no máximo ${MAX_GALLERY_ITEMS} imagens.`);
+      return;
+    }
+
     setMediaBusy(kind);
+    setSaved(false);
     setMessage("");
+
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;
+
     if (!uid) {
       setMediaBusy(null);
       setMessage("Sessão expirada.");
       return;
     }
-    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const path = `${uid}/${id}/${kind}/current.${ext}`;
-    const { error: upError } = await supabase.storage
-      .from("listing-media")
-      .upload(path, file, { upsert: true, contentType: file.type });
 
-    if (upError) {
+    if (kind !== "gallery") {
+      const existing = media.filter((item) => item.media_type === kind);
+
+      if (existing.length) {
+        const { error: storageDeleteError } = await supabase.storage
+          .from("listing-media")
+          .remove(existing.map((item) => item.storage_path));
+
+        if (storageDeleteError) {
+          setMediaBusy(null);
+          setMessage(storageDeleteError.message);
+          return;
+        }
+
+        const { error: dbDeleteError } = await supabase
+          .from("listing_media")
+          .delete()
+          .in("id", existing.map((item) => item.id));
+
+        if (dbDeleteError) {
+          setMediaBusy(null);
+          setMessage(dbDeleteError.message);
+          return;
+        }
+      }
+    }
+
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const filename = `${crypto.randomUUID()}.${ext}`;
+    const storagePath = `${uid}/${id}/${kind}/${filename}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("listing-media")
+      .upload(storagePath, file, {
+        upsert: false,
+        contentType: file.type,
+      });
+
+    if (uploadError) {
       setMediaBusy(null);
-      setMessage(upError.message);
+      setMessage(uploadError.message);
       return;
     }
 
     const { error: dbError } = await supabase
       .from("listing_media")
-      .upsert(
-        { listing_id: id, owner_id: uid, storage_path: path, media_type: kind, position: 0 },
-        { onConflict: "listing_id,storage_path" },
-      );
-    setMediaBusy(null);
+      .insert({
+        listing_id: id,
+        owner_id: uid,
+        storage_path: storagePath,
+        media_type: kind,
+        position: 0,
+      });
+
     if (dbError) {
+      await supabase.storage.from("listing-media").remove([storagePath]);
+      setMediaBusy(null);
       setMessage(dbError.message);
       return;
     }
-    setMessage(kind === "logo" ? "Logo atualizado." : "Capa atualizada.");
+
+    await refreshMedia();
+    setMediaBusy(null);
+    setMessage(
+      kind === "logo"
+        ? "Logo atualizado e enviado para análise."
+        : kind === "cover"
+          ? "Capa atualizada e enviada para análise."
+          : "Foto adicionada à galeria e enviada para análise.",
+    );
+  }
+
+  async function removeMedia(item: MediaRow) {
+    if (!supabase) return;
+
+    setMediaBusy("remover");
+    setSaved(false);
+    setMessage("");
+
+    const { error: storageError } = await supabase.storage
+      .from("listing-media")
+      .remove([item.storage_path]);
+
+    if (storageError) {
+      setMediaBusy(null);
+      setMessage(storageError.message);
+      return;
+    }
+
+    const { error: dbError } = await supabase
+      .from("listing_media")
+      .delete()
+      .eq("id", item.id);
+
+    if (dbError) {
+      setMediaBusy(null);
+      setMessage(dbError.message);
+      return;
+    }
+
+    await refreshMedia();
+    setMediaBusy(null);
+    setMessage("Imagem removida. O cadastro voltou para análise se estava publicado.");
   }
 
   if (state === "loading") {
@@ -171,6 +288,7 @@ export default function EditarCadastroPage() {
       </main>
     );
   }
+
   if (state === "notfound") {
     return (
       <main className="mx-auto min-h-svh max-w-md px-5 py-8">
@@ -184,6 +302,8 @@ export default function EditarCadastroPage() {
       </main>
     );
   }
+
+  const galleryCount = media.filter((item) => item.media_type === "gallery").length;
 
   return (
     <main className="mx-auto min-h-svh max-w-md px-5 py-8">
@@ -243,51 +363,92 @@ export default function EditarCadastroPage() {
             Defina o ponto do negócio no mapa de Capitão Andrade/MG.
           </p>
           <div id="edit-map" className="mt-3 h-56 w-full overflow-hidden rounded-2xl border border-black/10" />
-          <button
-            type="button"
-            data-map-clear
-            className="mt-2 inline-flex min-h-9 items-center rounded-full bg-black/[0.05] px-3 text-xs font-bold"
-          >
+          <button type="button" data-map-clear className="mt-2 inline-flex min-h-9 items-center rounded-full bg-black/[0.05] px-3 text-xs font-bold">
             Remover localização
           </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--capitao-primary-900)] text-sm font-bold text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={busy} className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--capitao-primary-900)] text-sm font-bold text-white disabled:opacity-50">
           {busy ? "Salvando…" : "Salvar alterações"}
         </button>
 
         {saved ? <p className="text-center text-xs font-bold text-emerald-600">{message}</p> : null}
-        {!saved && message ? <p className="text-center text-xs font-bold text-rose-600">{message}</p> : null}
       </form>
 
-      <div className="mt-5 space-y-3 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-card)]">
-        <p className="text-xs font-bold">Logo</p>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => uploadMedia("logo", e.target.files?.[0] ?? null)}
-          disabled={mediaBusy !== null}
-          className="block w-full text-xs"
-        />
-        <p className="mt-2 text-xs font-bold">Foto de capa</p>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => uploadMedia("cover", e.target.files?.[0] ?? null)}
-          disabled={mediaBusy !== null}
-          className="block w-full text-xs"
-        />
-        {mediaBusy ? <p className="text-xs text-[var(--capitao-text-secondary)]">Enviando {mediaBusy}…</p> : null}
-        {media.length > 0 ? (
-          <p className="mt-2 text-[10px] text-[var(--capitao-text-secondary)]">
-            {media.length} arquivo(s) de mídia vinculado(s).
-          </p>
+      <div className="mt-5 space-y-4 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-card)]">
+        <div>
+          <p className="text-xs font-bold">Logo</p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => void uploadMedia("logo", e.target.files?.[0] ?? null)}
+            disabled={mediaBusy !== null}
+            className="mt-2 block w-full text-xs"
+          />
+        </div>
+
+        <div>
+          <p className="text-xs font-bold">Foto de capa</p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => void uploadMedia("cover", e.target.files?.[0] ?? null)}
+            disabled={mediaBusy !== null}
+            className="mt-2 block w-full text-xs"
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-bold">Galeria</p>
+            <span className="text-[10px] font-semibold text-[var(--capitao-text-secondary)]">{galleryCount}/{MAX_GALLERY_ITEMS}</span>
+          </div>
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              const input = e.currentTarget;
+              const remaining = Math.max(0, MAX_GALLERY_ITEMS - galleryCount);
+              const files = Array.from(input.files ?? []).slice(0, remaining);
+              void (async () => {
+                for (const file of files) {
+                  await uploadMedia("gallery", file);
+                }
+                input.value = "";
+              })();
+            }}
+            disabled={mediaBusy !== null || galleryCount >= MAX_GALLERY_ITEMS}
+            className="mt-2 block w-full text-xs"
+          />
+        </div>
+
+        {media.length ? (
+          <div className="space-y-2 border-t border-black/[0.06] pt-4">
+            {media.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--capitao-bg)] p-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold">
+                    {item.media_type === "logo" ? "Logo" : item.media_type === "cover" ? "Capa" : "Galeria"}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10px] text-[var(--capitao-text-secondary)]">{item.storage_path.split("/").at(-1)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void removeMedia(item)}
+                  disabled={mediaBusy !== null}
+                  className="grid size-9 shrink-0 place-items-center rounded-full bg-red-50 text-red-700 disabled:opacity-40"
+                  aria-label="Remover imagem"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         ) : null}
-        {message && !saved && !mediaBusy ? <p className="text-xs font-bold text-rose-600">{message}</p> : null}
+
+        {mediaBusy ? <p className="text-xs text-[var(--capitao-text-secondary)]">Processando mídia…</p> : null}
+        {message && !saved && !mediaBusy ? <p className="text-xs font-bold text-[var(--capitao-text-secondary)]">{message}</p> : null}
       </div>
 
       <MapPicker containerId="edit-map" formSelector="form#edit-listing" />
