@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, LogIn, LogOut, UserRound } from "lucide-react";
+import { ArrowLeft, LogIn, LogOut, Plus, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function PerfilPage() {
@@ -12,9 +12,20 @@ export default function PerfilPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [listings, setListings] = useState<Array<{ id: string; name: string; category: string; status: string }>>([]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+    supabase.auth.getUser().then(async ({ data }) => {
+      const currentEmail = data.user?.email ?? null;
+      setUserEmail(currentEmail);
+      if (currentEmail) {
+        const { data: rows } = await supabase
+          .from("listings")
+          .select("id,name,category,status")
+          .order("created_at", { ascending: false });
+        setListings(rows ?? []);
+      }
+    });
   }, [supabase]);
 
   async function signIn() {
@@ -24,6 +35,11 @@ export default function PerfilPage() {
     setBusy(false);
     if (error) return setMessage(error.message);
     setUserEmail(data.user.email ?? email);
+    const { data: rows } = await supabase
+      .from("listings")
+      .select("id,name,category,status")
+      .order("created_at", { ascending: false });
+    setListings(rows ?? []);
     setMessage("Login realizado.");
   }
 
@@ -44,6 +60,7 @@ export default function PerfilPage() {
   async function signOut() {
     await supabase.auth.signOut();
     setUserEmail(null);
+    setListings([]);
     setMessage("Sessão encerrada.");
   }
 
@@ -64,9 +81,42 @@ export default function PerfilPage() {
           <div className="mt-5">
             <p className="text-sm text-[var(--capitao-text-secondary)]">Você está conectado como</p>
             <p className="mt-1 font-bold">{userEmail}</p>
-            <button onClick={signOut} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[var(--capitao-primary-900)] px-4 text-sm font-bold text-white">
-              <LogOut className="size-4" /> Sair
-            </button>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link href="/explorar/cadastrar" className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[var(--capitao-primary-100)] px-4 text-sm font-bold text-[var(--capitao-primary-900)]">
+                <Plus className="size-4" /> Novo cadastro
+              </Link>
+              <button onClick={signOut} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[var(--capitao-primary-900)] px-4 text-sm font-bold text-white">
+                <LogOut className="size-4" /> Sair
+              </button>
+            </div>
+
+            <section className="mt-7">
+              <div className="flex items-end justify-between">
+                <div>
+                  <h2 className="font-extrabold">Meus cadastros</h2>
+                  <p className="text-xs text-[var(--capitao-text-secondary)]">Você vê seus próprios itens mesmo enquanto estão pendentes.</p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                {listings.length ? listings.map((item) => (
+                  <div key={item.id} className="rounded-2xl bg-[var(--capitao-bg)] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold">{item.name}</p>
+                        <p className="mt-0.5 text-[11px] text-[var(--capitao-text-secondary)]">{item.category}</p>
+                      </div>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${item.status === "published" ? "bg-[var(--capitao-primary-100)] text-[var(--capitao-primary-900)]" : item.status === "rejected" ? "bg-red-50 text-red-700" : "bg-[var(--capitao-solar-100)] text-[#8a6500]"}`}>
+                        {item.status === "published" ? "Publicado" : item.status === "rejected" ? "Rejeitado" : "Pendente"}
+                      </span>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="rounded-2xl bg-[var(--capitao-bg)] p-4 text-sm text-[var(--capitao-text-secondary)]">
+                    Você ainda não enviou nenhum cadastro.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         ) : (
           <div className="mt-5 space-y-3">
