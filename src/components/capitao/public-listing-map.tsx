@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /** Static mini map with a marker for the public listing page. */
 export function PublicListingMap({
@@ -12,13 +12,18 @@ export function PublicListingMap({
   lng: number;
   containerId: string;
 }) {
+  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
+
   useEffect(() => {
     let cancelled = false;
+
     async function boot() {
-      const maplibregl = (await import("maplibre-gl")).default;
-      if (cancelled || !maplibregl) return;
+      const maplibregl = await import("maplibre-gl");
+      if (cancelled) return;
+
       const container = document.getElementById(containerId);
       if (!container) return;
+
       const map = new maplibregl.Map({
         container,
         center: [lng, lat],
@@ -37,12 +42,19 @@ export function PublicListingMap({
           layers: [{ id: "osm", type: "raster", source: "osm" }],
         },
       });
+
+      mapRef.current = map;
       new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
     }
+
     void boot();
+
     return () => {
       cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
     };
   }, [lat, lng, containerId]);
+
   return null;
 }
