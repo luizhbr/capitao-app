@@ -22,9 +22,11 @@ export function DirectoryMap({
 
   useEffect(() => {
     let cancelled = false;
+
     async function boot() {
-      const maplibregl = (await import("maplibre-gl")).default;
-      if (cancelled || !maplibregl) return;
+      const maplibregl = await import("maplibre-gl");
+      if (cancelled) return;
+
       const container = document.getElementById(containerId);
       if (!container) return;
 
@@ -49,16 +51,23 @@ export function DirectoryMap({
           layers: [{ id: "osm", type: "raster", source: "osm" }],
         },
       });
+
       mapRef.current = map;
 
       for (const point of points) {
         const popup = new maplibregl.Popup({ offset: 24, closeButton: false }).setHTML(
           `<a href="/explorar/${point.id}" style="font-weight:800;text-decoration:none;color:#0B5135">${point.name}</a><br/><span style="font-size:11px;color:#696E6B">${point.categoryLabel}</span>`,
         );
-        new maplibregl.Marker().setLngLat([point.longitude, point.latitude]).setPopup(popup).addTo(map);
+
+        new maplibregl.Marker()
+          .setLngLat([point.longitude, point.latitude])
+          .setPopup(popup)
+          .addTo(map);
       }
     }
+
     void boot();
+
     return () => {
       cancelled = true;
       mapRef.current?.remove();
