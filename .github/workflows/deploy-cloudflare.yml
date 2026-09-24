@@ -36,9 +36,6 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Normalize Cloudflare credentials
-        run: node scripts/normalize-cloudflare-env.mjs
-
       - name: Validate Cloudflare authentication
         run: npx wrangler whoami
 
