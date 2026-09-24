@@ -36,20 +36,28 @@ const markerGlyph: Record<string, string> = {
 };
 
 function makeMarkerElement(point?: CapitaoMapPoint, picker = false) {
-  const el = document.createElement("button");
-  el.type = "button";
-  el.setAttribute("aria-label", picker ? "Local selecionado" : point?.name ?? "Local");
-  el.style.width = picker ? "34px" : "32px";
-  el.style.height = picker ? "34px" : "32px";
-  el.style.borderRadius = "999px 999px 999px 4px";
-  el.style.transform = "rotate(-45deg)";
-  el.style.border = "3px solid rgba(255,255,255,.95)";
-  el.style.background = picker ? "#083D29" : markerTone[point?.category ?? ""] ?? "#0B5135";
-  el.style.boxShadow = "0 8px 22px rgba(8,61,41,.25)";
-  el.style.display = "grid";
-  el.style.placeItems = "center";
-  el.style.cursor = picker ? "grab" : "pointer";
-  el.style.padding = "0";
+  const wrapper = document.createElement("button");
+  wrapper.type = "button";
+  wrapper.setAttribute("aria-label", picker ? "Local selecionado" : point?.name ?? "Local");
+  wrapper.style.width = picker ? "38px" : "36px";
+  wrapper.style.height = picker ? "38px" : "36px";
+  wrapper.style.border = "0";
+  wrapper.style.background = "transparent";
+  wrapper.style.padding = "0";
+  wrapper.style.display = "grid";
+  wrapper.style.placeItems = "center";
+  wrapper.style.cursor = picker ? "grab" : "pointer";
+
+  const pin = document.createElement("span");
+  pin.style.width = picker ? "34px" : "32px";
+  pin.style.height = picker ? "34px" : "32px";
+  pin.style.borderRadius = "999px 999px 999px 4px";
+  pin.style.transform = "rotate(-45deg)";
+  pin.style.border = "3px solid rgba(255,255,255,.95)";
+  pin.style.background = picker ? "#083D29" : markerTone[point?.category ?? ""] ?? "#0B5135";
+  pin.style.boxShadow = "0 8px 22px rgba(8,61,41,.25)";
+  pin.style.display = "grid";
+  pin.style.placeItems = "center";
 
   const dot = document.createElement("span");
   dot.textContent = picker ? "•" : markerGlyph[point?.category ?? ""] ?? "•";
@@ -57,9 +65,10 @@ function makeMarkerElement(point?: CapitaoMapPoint, picker = false) {
   dot.style.color = "#fff";
   dot.style.fontSize = picker ? "22px" : "16px";
   dot.style.lineHeight = "1";
-  el.appendChild(dot);
 
-  return el;
+  pin.appendChild(dot);
+  wrapper.appendChild(pin);
+  return wrapper;
 }
 
 function applyCapitaoTheme(map: import("maplibre-gl").Map) {
@@ -176,6 +185,7 @@ export function CapitaoMap({
             lng: number,
             lat: number,
             metadata?: Pick<SetLocationDetail, "geocodingStatus" | "geocodingSource" | "geocodedAt">,
+            sync = true,
           ) => {
             if (!map) return;
 
@@ -198,13 +208,15 @@ export function CapitaoMap({
               pickerMarkerRef.current.setLngLat([lng, lat]);
             }
 
-            syncInputs(
-              lng,
-              lat,
-              metadata?.geocodingStatus ?? "manual",
-              metadata?.geocodingSource ?? "manual",
-              metadata?.geocodedAt,
-            );
+            if (sync) {
+              syncInputs(
+                lng,
+                lat,
+                metadata?.geocodingStatus ?? "manual",
+                metadata?.geocodingSource ?? "manual",
+                metadata?.geocodedAt,
+              );
+            }
           };
 
           map.on("click", (event: import("maplibre-gl").MapMouseEvent) => {
@@ -232,10 +244,7 @@ export function CapitaoMap({
           window.addEventListener("capitao-map:clear-location", onClearLocation);
 
           if (hasInitial) {
-            setPickerMarker(initialLng!, initialLat!, {
-              geocodingStatus: "manual",
-              geocodingSource: "manual",
-            });
+            setPickerMarker(initialLng!, initialLat!, undefined, false);
           }
 
           map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
