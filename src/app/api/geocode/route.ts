@@ -56,6 +56,8 @@ export async function GET(request: NextRequest) {
   url.searchParams.set("limit", "5");
   url.searchParams.set("countrycodes", "br");
   url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("viewbox", "-41.94,-18.98,-41.67,-19.15");
+  url.searchParams.set("bounded", "1");
 
   const response = await fetch(url, {
     headers: {
