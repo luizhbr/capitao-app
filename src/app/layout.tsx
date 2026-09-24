@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/manrope";
 import "./globals.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 
 export const metadata: Metadata = {
