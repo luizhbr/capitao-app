@@ -9,7 +9,7 @@
   "keep_vars": true,
   "assets": {
     "not_found_handling": "none",
-    "run_worker_first": ["/"]
+    "run_worker_first": true
   },
   "vars": {
     "CAPITAO_ENV": "production"
