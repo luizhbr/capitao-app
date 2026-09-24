@@ -30,3 +30,23 @@ html{background:var(--background);color:var(--foreground);-webkit-tap-highlight-
 body{margin:0;min-height:100vh;background:radial-gradient(circle at 90% -10%,rgb(220 237 227 / 70%),transparent 30rem),var(--background);font-family:var(--font-sans);text-rendering:optimizeLegibility}
 button,a{touch-action:manipulation}
 ::selection{background:var(--capitao-primary-100);color:var(--capitao-primary-900)}
+
+.capitao-map-popup .maplibregl-popup-content{
+  border-radius:18px;
+  border:1px solid rgb(8 61 41 / 8%);
+  background:rgb(255 255 255 / 96%);
+  box-shadow:var(--shadow-floating);
+  padding:12px 14px;
+  backdrop-filter:blur(14px);
+}
+.capitao-map-popup .maplibregl-popup-tip{border-top-color:rgb(255 255 255 / 96%)}
+.maplibregl-ctrl-group{
+  overflow:hidden;
+  border:1px solid rgb(8 61 41 / 8%);
+  border-radius:14px!important;
+  box-shadow:var(--shadow-card)!important;
+}
+.maplibregl-ctrl-attrib{
+  font-family:var(--font-sans);
+  font-size:9px!important;
+}
