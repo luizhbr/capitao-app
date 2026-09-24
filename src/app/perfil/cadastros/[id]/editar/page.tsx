@@ -7,6 +7,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { createClient, supabaseEnvConfigured } from "@/lib/supabase/client";
 import { MapPicker } from "@/components/capitao/map-picker";
 import { MapClearButton } from "@/components/capitao/map-clear-button";
+import { AddressGeocoder } from "@/components/capitao/address-geocoder";
 
 const categories = [
   ["commerce", "Comércio"],
@@ -39,13 +40,15 @@ export default function EditarCadastroPage() {
   const [saved, setSaved] = useState(false);
   const [mediaBusy, setMediaBusy] = useState<string | null>(null);
   const [media, setMedia] = useState<MediaRow[]>([]);
+  const [initialLat, setInitialLat] = useState<number | null>(null);
+  const [initialLng, setInitialLng] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id || !supabase) return;
 
     supabase
       .from("listings")
-      .select("id,name,category,description,phone,whatsapp,address,neighborhood,latitude,longitude,status")
+      .select("id,name,category,description,phone,whatsapp,address,neighborhood,latitude,longitude,geocoding_status,geocoding_source,geocoded_at,status")
       .eq("id", id)
       .maybeSingle()
       .then(({ data }) => {
@@ -73,6 +76,11 @@ export default function EditarCadastroPage() {
           const lng = (data as Record<string, number | null>).longitude;
           set("latitude", lat === null ? "" : String(lat));
           set("longitude", lng === null ? "" : String(lng));
+          set("geocoding_status", (data as Record<string, string | null>).geocoding_status);
+          set("geocoding_source", (data as Record<string, string | null>).geocoding_source);
+          set("geocoded_at", (data as Record<string, string | null>).geocoded_at);
+          setInitialLat(lat);
+          setInitialLng(lng);
         }
 
         setState("ready");
@@ -121,6 +129,10 @@ export default function EditarCadastroPage() {
       return;
     }
 
+    const geocodingStatus = String(form.get("geocoding_status") ?? "").trim() || null;
+    const geocodingSource = String(form.get("geocoding_source") ?? "").trim() || null;
+    const geocodedAt = String(form.get("geocoded_at") ?? "").trim() || null;
+
     const payload = {
       name: String(form.get("name") ?? "").trim(),
       category: String(form.get("category") ?? ""),
@@ -131,6 +143,9 @@ export default function EditarCadastroPage() {
       neighborhood: String(form.get("neighborhood") ?? "").trim() || null,
       latitude: lat,
       longitude: lng,
+      geocoding_status: lat === null ? null : (geocodingStatus ?? "manual"),
+      geocoding_source: lat === null ? null : (geocodingSource ?? "manual"),
+      geocoded_at: lat === null ? null : (geocodedAt ?? new Date().toISOString()),
     };
 
     const { error } = await supabase.from("listings").update(payload).eq("id", id);
@@ -356,13 +371,19 @@ export default function EditarCadastroPage() {
 
         <input type="hidden" name="latitude" readOnly />
         <input type="hidden" name="longitude" readOnly />
+        <input type="hidden" name="geocoding_status" readOnly />
+        <input type="hidden" name="geocoding_source" readOnly />
+        <input type="hidden" name="geocoded_at" readOnly />
 
-        <div className="rounded-2xl bg-[var(--capitao-bg)] p-4">
-          <p className="text-xs font-bold">Localização</p>
-          <p className="mt-1 text-xs text-[var(--capitao-text-secondary)]">
-            Defina o ponto do negócio no mapa de Capitão Andrade/MG.
+        <div className="rounded-2xl bg-[var(--capitao-primary-050)] p-4">
+          <p className="text-sm font-extrabold">Localização</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--capitao-text-secondary)]">
+            Localize pelo endereço ou ajuste diretamente no mapa de Capitão Andrade/MG.
           </p>
-          <div id="edit-map" className="mt-3 h-56 w-full overflow-hidden rounded-2xl border border-black/10" />
+          <div className="mt-3">
+            <AddressGeocoder formSelector="form#edit-listing" mapContainerId="edit-map" />
+          </div>
+          <div id="edit-map" className="mt-3 h-64 w-full overflow-hidden rounded-2xl border border-black/10 bg-white" />
           <button type="button" data-map-clear className="mt-2 inline-flex min-h-9 items-center rounded-full bg-black/[0.05] px-3 text-xs font-bold">
             Remover localização
           </button>
@@ -451,8 +472,13 @@ export default function EditarCadastroPage() {
         {message && !saved && !mediaBusy ? <p className="text-xs font-bold text-[var(--capitao-text-secondary)]">{message}</p> : null}
       </div>
 
-      <MapPicker containerId="edit-map" formSelector="form#edit-listing" />
-      <MapClearButton formSelector="form#edit-listing" />
+      <MapPicker
+        containerId="edit-map"
+        formSelector="form#edit-listing"
+        initialLat={initialLat}
+        initialLng={initialLng}
+      />
+      <MapClearButton formSelector="form#edit-listing" containerId="edit-map" />
     </main>
   );
 }
