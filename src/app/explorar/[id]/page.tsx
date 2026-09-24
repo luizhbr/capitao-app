@@ -199,7 +199,15 @@ export default async function PublicListingPage({
       ) : null}
 
       {hasCoordinates ? (
-        <PublicListingMap lat={listing.latitude!} lng={listing.longitude!} containerId="public-map" />
+        <PublicListingMap
+          lat={listing.latitude!}
+          lng={listing.longitude!}
+          containerId="public-map"
+          id={listing.id}
+          name={listing.name}
+          category={listing.category}
+          categoryLabel={categoryLabels[listing.category] ?? listing.category}
+        />
       ) : null}
     </main>
   );
