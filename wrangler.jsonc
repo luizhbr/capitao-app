@@ -10,7 +10,7 @@
   "assets": {
     "not_found_handling": "none",
     "binding": "ASSETS",
-    "run_worker_first": true
+    "run_worker_first": ["/", "/explorar", "/admin", "/perfil/*", "/coopera", "/cidade", "/capitao-2040", "/explorar/*"]
   },
   "vars": {
     "CAPITAO_ENV": "production"
