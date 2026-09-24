@@ -36,6 +36,195 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Normalize Cloudflare credentials
+        shell: bash
+        env:
+          CF_TOKEN_RAW: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_RAW: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+
+          token="${CF_TOKEN_RAW//
+
+      - name: Security scan
+        run: npm run security:scan
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build for Cloudflare
+        run: npm run cf:build
+
+      - name: Deploy Worker
+        run: npx @vinext/cloudflare deploy --skip-build
+
+      - name: Validate production dynamic routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://capitao-preview.luiz-ztx.workers.dev"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/153 Safari/537.36"
+          for path in / /explorar /explorar/mapa /admin /perfil/cadastros; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              code=$(curl -A "$UA" -L -sS -o "/tmp/capitao-response.html" -w "%{http_code}" "$BASE$path" || true)
+              echo "$path attempt $attempt -> HTTP $code"
+              if [ "$code" = "200" ]; then
+                ok=1
+                break
+              fi
+              sleep 8
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Production route failed: $path"
+              exit 1
+            fi
+          done
+\r'/}"
+          token="${token//
+
+      - name: Security scan
+        run: npm run security:scan
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build for Cloudflare
+        run: npm run cf:build
+
+      - name: Deploy Worker
+        run: npx @vinext/cloudflare deploy --skip-build
+
+      - name: Validate production dynamic routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://capitao-preview.luiz-ztx.workers.dev"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/153 Safari/537.36"
+          for path in /explorar /admin /perfil/cadastros; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              code=$(curl -A "$UA" -L -sS -o "/tmp/capitao-response.html" -w "%{http_code}" "$BASE$path" || true)
+              echo "$path attempt $attempt -> HTTP $code"
+              if [ "$code" = "200" ]; then
+                ok=1
+                break
+              fi
+              sleep 8
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Production route failed: $path"
+              exit 1
+            fi
+          done
+\n'/}"
+          token="${token#Bearer }"
+          token="${token#bearer }"
+          token="${token#\"}"
+          token="${token%\"}"
+          token="${token#\'}"
+          token="${token%\'}"
+          token="$(printf '%s' "$token" | xargs)"
+
+          account="${CF_ACCOUNT_RAW//
+
+      - name: Security scan
+        run: npm run security:scan
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build for Cloudflare
+        run: npm run cf:build
+
+      - name: Deploy Worker
+        run: npx @vinext/cloudflare deploy --skip-build
+
+      - name: Validate production dynamic routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://capitao-preview.luiz-ztx.workers.dev"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/153 Safari/537.36"
+          for path in /explorar /admin /perfil/cadastros; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              code=$(curl -A "$UA" -L -sS -o "/tmp/capitao-response.html" -w "%{http_code}" "$BASE$path" || true)
+              echo "$path attempt $attempt -> HTTP $code"
+              if [ "$code" = "200" ]; then
+                ok=1
+                break
+              fi
+              sleep 8
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Production route failed: $path"
+              exit 1
+            fi
+          done
+\r'/}"
+          account="${account//
+
+      - name: Security scan
+        run: npm run security:scan
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build for Cloudflare
+        run: npm run cf:build
+
+      - name: Deploy Worker
+        run: npx @vinext/cloudflare deploy --skip-build
+
+      - name: Validate production dynamic routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://capitao-preview.luiz-ztx.workers.dev"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/153 Safari/537.36"
+          for path in /explorar /admin /perfil/cadastros; do
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              code=$(curl -A "$UA" -L -sS -o "/tmp/capitao-response.html" -w "%{http_code}" "$BASE$path" || true)
+              echo "$path attempt $attempt -> HTTP $code"
+              if [ "$code" = "200" ]; then
+                ok=1
+                break
+              fi
+              sleep 8
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Production route failed: $path"
+              exit 1
+            fi
+          done
+\n'/}"
+          account="${account#\"}"
+          account="${account%\"}"
+          account="${account#\'}"
+          account="${account%\'}"
+          account="$(printf '%s' "$account" | xargs)"
+
+          if [ -z "$token" ] || [ -z "$account" ]; then
+            echo "Cloudflare credentials are empty after normalization."
+            exit 1
+          fi
+
+          {
+            echo "CLOUDFLARE_API_TOKEN=$token"
+            echo "CLOUDFLARE_ACCOUNT_ID=$account"
+          } >> "$GITHUB_ENV"
+
+          echo "Cloudflare credentials normalized without printing secret values."
+
+      - name: Validate Cloudflare authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler whoami >/tmp/wrangler-whoami.txt
+          grep -E "Account Name|Account ID|You are logged in" /tmp/wrangler-whoami.txt || true
+
       - name: Validate environment
         run: node scripts/check-cloudflare-env.mjs production
 
