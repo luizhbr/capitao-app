@@ -1,7 +1,9 @@
 name: Deploy CAPITÃO to Cloudflare Workers
 
-# Manual until CLOUDFLARE_API_TOKEN is replaced with a real API token.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
