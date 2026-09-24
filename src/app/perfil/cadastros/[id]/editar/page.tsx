@@ -28,6 +28,23 @@ type MediaRow = {
   storage_path: string;
 };
 
+type EditableListing = {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  neighborhood: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  geocoding_status: string | null;
+  geocoding_source: string | null;
+  geocoded_at: string | null;
+  status: string;
+};
+
 export default function EditarCadastroPage() {
   const configured = supabaseEnvConfigured();
   const supabase = useMemo(() => (configured ? createClient() : null), [configured]);
@@ -40,6 +57,7 @@ export default function EditarCadastroPage() {
   const [saved, setSaved] = useState(false);
   const [mediaBusy, setMediaBusy] = useState<string | null>(null);
   const [media, setMedia] = useState<MediaRow[]>([]);
+  const [listing, setListing] = useState<EditableListing | null>(null);
   const [initialLat, setInitialLat] = useState<number | null>(null);
   const [initialLng, setInitialLng] = useState<number | null>(null);
 
@@ -57,32 +75,10 @@ export default function EditarCadastroPage() {
           return;
         }
 
-        const form = document.querySelector("form#edit-listing") as HTMLFormElement | null;
-        if (form) {
-          const set = (name: string, value: string | null) => {
-            const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
-            if (el) el.value = value ?? "";
-          };
-
-          set("name", (data as Record<string, string | null>).name);
-          set("category", (data as Record<string, string | null>).category);
-          set("description", (data as Record<string, string | null>).description);
-          set("phone", (data as Record<string, string | null>).phone);
-          set("whatsapp", (data as Record<string, string | null>).whatsapp);
-          set("address", (data as Record<string, string | null>).address);
-          set("neighborhood", (data as Record<string, string | null>).neighborhood);
-
-          const lat = (data as Record<string, number | null>).latitude;
-          const lng = (data as Record<string, number | null>).longitude;
-          set("latitude", lat === null ? "" : String(lat));
-          set("longitude", lng === null ? "" : String(lng));
-          set("geocoding_status", (data as Record<string, string | null>).geocoding_status);
-          set("geocoding_source", (data as Record<string, string | null>).geocoding_source);
-          set("geocoded_at", (data as Record<string, string | null>).geocoded_at);
-          setInitialLat(lat);
-          setInitialLng(lng);
-        }
-
+        const row = data as unknown as EditableListing;
+        setListing(row);
+        setInitialLat(row.latitude);
+        setInitialLng(row.longitude);
         setState("ready");
       });
   }, [supabase, id]);
@@ -331,12 +327,12 @@ export default function EditarCadastroPage() {
       <form id="edit-listing" onSubmit={save} className="mt-5 space-y-4 rounded-[var(--radius-card)] bg-white p-5 shadow-[var(--shadow-card)]">
         <label className="block">
           <span className="mb-1 block text-xs font-bold">Nome *</span>
-          <input required minLength={2} maxLength={120} name="name" className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
+          <input required minLength={2} maxLength={120} name="name" defaultValue={listing?.name ?? ""} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
         </label>
 
         <label className="block">
           <span className="mb-1 block text-xs font-bold">Categoria *</span>
-          <select required name="category" className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]">
+          <select required name="category" defaultValue={listing?.category ?? "commerce"} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]">
             {categories.map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
@@ -345,35 +341,35 @@ export default function EditarCadastroPage() {
 
         <label className="block">
           <span className="mb-1 block text-xs font-bold">Descrição</span>
-          <textarea name="description" maxLength={1000} rows={3} className="w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
+          <textarea name="description" defaultValue={listing?.description ?? ""} maxLength={1000} rows={3} className="w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 py-3 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="mb-1 block text-xs font-bold">Telefone</span>
-            <input name="phone" maxLength={30} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
+            <input name="phone" defaultValue={listing?.phone ?? ""} maxLength={30} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-bold">WhatsApp</span>
-            <input name="whatsapp" maxLength={30} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
+            <input name="whatsapp" defaultValue={listing?.whatsapp ?? ""} maxLength={30} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
           </label>
         </div>
 
         <label className="block">
           <span className="mb-1 block text-xs font-bold">Endereço</span>
-          <input name="address" maxLength={200} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
+          <input name="address" defaultValue={listing?.address ?? ""} maxLength={200} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
         </label>
 
         <label className="block">
           <span className="mb-1 block text-xs font-bold">Bairro</span>
-          <input name="neighborhood" maxLength={100} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
+          <input name="neighborhood" defaultValue={listing?.neighborhood ?? ""} maxLength={100} className="min-h-12 w-full rounded-2xl border border-black/10 bg-[var(--capitao-bg)] px-4 text-sm outline-none focus:border-[var(--capitao-primary-500)]" />
         </label>
 
-        <input type="hidden" name="latitude" readOnly />
-        <input type="hidden" name="longitude" readOnly />
-        <input type="hidden" name="geocoding_status" readOnly />
-        <input type="hidden" name="geocoding_source" readOnly />
-        <input type="hidden" name="geocoded_at" readOnly />
+        <input type="hidden" name="latitude" defaultValue={listing?.latitude ?? ""} readOnly />
+        <input type="hidden" name="longitude" defaultValue={listing?.longitude ?? ""} readOnly />
+        <input type="hidden" name="geocoding_status" defaultValue={listing?.geocoding_status ?? ""} readOnly />
+        <input type="hidden" name="geocoding_source" defaultValue={listing?.geocoding_source ?? ""} readOnly />
+        <input type="hidden" name="geocoded_at" defaultValue={listing?.geocoded_at ?? ""} readOnly />
 
         <div className="rounded-2xl bg-[var(--capitao-primary-050)] p-4">
           <p className="text-sm font-extrabold">Localização</p>
