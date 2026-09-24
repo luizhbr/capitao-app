@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { ArrowLeft, Plus, Search } from "lucide-react";
+import { ArrowLeft, MapPinned, Plus, Search } from "lucide-react";
 import { BottomNav } from "@/components/capitao/bottom-nav";
 import { ListingCard, type DirectoryListing } from "@/components/capitao/listing-card";
 import { createClient } from "@/lib/supabase/server";
@@ -87,6 +87,9 @@ export default async function ExplorarPage({
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--capitao-primary-500)]">Explorar</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Encontre o que precisa na cidade</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--capitao-text-secondary)]">Comércio, alimentação, serviços, turismo, produtores e tecnologia local.</p>
+        <Link href="/explorar/mapa" className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--capitao-primary-100)] px-4 text-xs font-bold text-[var(--capitao-primary-900)]">
+          <MapPinned className="size-4" /> Ver mapa da cidade
+        </Link>
       </header>
 
       <form className="mt-5 flex gap-2" action="/explorar" method="get">
