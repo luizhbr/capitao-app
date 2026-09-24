@@ -3,7 +3,9 @@ import { Bell, BriefcaseBusiness, Map, Search, ShoppingBag, Store, UtensilsCross
 import { BottomNav } from "@/components/capitao/bottom-nav";
 import { FeatureCard } from "@/components/capitao/feature-card";
 import { ProjectCard, type PublicProject } from "@/components/capitao/project-card";
+import { CapitaoMap } from "@/components/capitao/capitao-map";
 import { createClient } from "@/lib/supabase/server";
+import { getPublishedMapPoints } from "@/lib/map-data";
 
 async function getFeaturedProject(): Promise<PublicProject | undefined> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
@@ -28,7 +30,10 @@ async function getFeaturedProject(): Promise<PublicProject | undefined> {
 }
 
 export default async function HomePage() {
-  const featuredProject = await getFeaturedProject();
+  const [featuredProject, mapPoints] = await Promise.all([
+    getFeaturedProject(),
+    getPublishedMapPoints(120),
+  ]);
 
   return (
     <main className="mx-auto min-h-svh max-w-md px-4 pb-32 pt-[max(18px,env(safe-area-inset-top))] sm:px-5">
@@ -59,6 +64,34 @@ export default async function HomePage() {
         <Link href="/explorar" className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-[var(--capitao-primary-900)] transition hover:bg-white/90 active:scale-[0.98]">
           Explorar cidade
         </Link>
+      </section>
+
+      <section className="mt-7">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--capitao-primary-500)]">Perto de você</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight">Explore Capitão Andrade</h2>
+          </div>
+          <Link href="/explorar/mapa" className="text-xs font-semibold text-[var(--capitao-primary-700)]">
+            Abrir mapa
+          </Link>
+        </div>
+
+        <div className="overflow-hidden rounded-[var(--radius-featured)] border border-black/[0.05] bg-white shadow-[var(--shadow-featured)]">
+          <div id="home-city-map" className="h-72 w-full" />
+          <div className="flex items-center justify-between gap-3 border-t border-black/[0.05] px-4 py-3">
+            <p className="text-xs text-[var(--capitao-text-secondary)]">
+              {mapPoints.length
+                ? `${mapPoints.length} ${mapPoints.length === 1 ? "local cadastrado" : "locais cadastrados"}`
+                : "Os locais aprovados aparecerão aqui."}
+            </p>
+            <Link href="/explorar/mapa" className="rounded-full bg-[var(--capitao-primary-100)] px-3 py-2 text-[11px] font-bold text-[var(--capitao-primary-900)]">
+              Ver mapa completo
+            </Link>
+          </div>
+        </div>
+
+        <CapitaoMap mode="city" points={mapPoints} containerId="home-city-map" />
       </section>
 
       <section className="mt-7">
