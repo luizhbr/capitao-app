@@ -14,7 +14,7 @@ type SetLocationDetail = {
   geocodedAt?: string;
 };
 
-const CITY_CENTER: [number, number] = [-41.68, -18.85];
+const CITY_CENTER: [number, number] = [-41.86, -19.07];
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
 const markerTone: Record<string, string> = {
