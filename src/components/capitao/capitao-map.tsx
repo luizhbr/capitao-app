@@ -148,7 +148,6 @@ export function CapitaoMap({
         interactive: mode !== "listing",
         scrollZoom: mode === "directory" || mode === "picker",
         cooperativeGestures: mode === "directory",
-        attributionControl: true,
       });
 
       mapRef.current = map;
