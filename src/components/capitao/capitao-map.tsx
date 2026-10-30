@@ -303,6 +303,18 @@ export function CapitaoMap({
         if (mode === "directory") {
           map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
           map.addControl(new maplibregl.FullscreenControl(), "top-right");
+          const focusPoint = (event: Event) => {
+            const detail = (event as CustomEvent<{ containerId: string; id: string }>).detail;
+            if (!map || detail?.containerId !== containerId) return;
+            const index = points.findIndex((point) => point.id === detail.id);
+            if (index < 0) return;
+            const target = points[index];
+            map.flyTo({ center: [target.longitude, target.latitude], zoom: 16, essential: true });
+            const popup = markersRef.current[index]?.getPopup();
+            if (popup && !popup.isOpen()) markersRef.current[index].togglePopup();
+          };
+          window.addEventListener("capitao-map:focus-point", focusPoint);
+          map.once("remove", () => window.removeEventListener("capitao-map:focus-point", focusPoint));
         }
       });
     }
