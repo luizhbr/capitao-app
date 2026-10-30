@@ -299,7 +299,23 @@ export function CapitaoMap({
         }
 
         if (mode === "directory") {
-          map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+          map.addControl(new maplibregl.NavigationControl({ showCompass: false, visualizePitch: true }), "top-right");
+          const onFocusPoint = (event: Event) => {
+            const detail = (event as CustomEvent<{
+              containerId: string;
+              id: string;
+              latitude: number;
+              longitude: number;
+            }>).detail;
+            if (!map || detail?.containerId !== containerId) return;
+            const point = points.find((item) => item.id === detail.id);
+            if (!point) return;
+            map.flyTo({ center: [point.longitude, point.latitude], zoom: 16, essential: true, duration: 650 });
+            const marker = markersRef.current[points.indexOf(point)];
+            marker?.togglePopup();
+          };
+          window.addEventListener("capitao-map:focus-point", onFocusPoint);
+          map.once("remove", () => window.removeEventListener("capitao-map:focus-point", onFocusPoint));
         }
       });
     }
