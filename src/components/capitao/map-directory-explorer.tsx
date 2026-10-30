@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, MapPin, Search, Store, UtensilsCrossed, Wrench, Trees, Sprout, Cpu, X } from "lucide-react";
+import { ArrowUpRight, LocateFixed, MapPin, Search, Store, UtensilsCrossed, Wrench, Trees, Sprout, Cpu, X } from "lucide-react";
 import { CapitaoMap } from "@/components/capitao/capitao-map";
 import type { CapitaoMapPoint } from "@/lib/map-types";
 
@@ -21,6 +21,18 @@ type Category = (typeof filters)[number]["value"];
 export function MapDirectoryExplorer({ points }: { points: CapitaoMapPoint[] }) {
   const [category, setCategory] = useState<Category>("all");
   const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  function focusPoint(id: string) {
+    setSelectedId(id);
+    window.dispatchEvent(new CustomEvent("capitao-map:focus-point", {
+      detail: { containerId: "directory-map", id },
+    }));
+    document.getElementById("directory-map")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "center",
+    });
+  }
   const normalized = query.trim().toLocaleLowerCase("pt-BR");
   const filtered = useMemo(
     () => points.filter((point) =>
@@ -82,18 +94,33 @@ export function MapDirectoryExplorer({ points }: { points: CapitaoMapPoint[] }) 
           <h2 className="text-base font-extrabold text-[#083D29]">Descubra no mapa</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {filtered.map((point) => (
-              <Link
-                href={`/explorar/${encodeURIComponent(point.id)}`}
+              <article
                 key={point.id}
-                className="group flex items-center gap-3 rounded-[20px] border border-[#0B5135]/[.07] bg-white p-3.5 shadow-[0_3px_14px_rgba(8,61,41,.05)] transition hover:-translate-y-0.5 hover:shadow-[0_9px_24px_rgba(8,61,41,.10)] focus-visible:outline-2 focus-visible:outline-[#297A56]"
+                className={`group flex items-center gap-3 rounded-[20px] border bg-white p-3.5 shadow-[0_3px_14px_rgba(8,61,41,.05)] transition hover:shadow-[0_9px_24px_rgba(8,61,41,.10)] ${selectedId === point.id ? "border-[#297A56] ring-2 ring-[#DCEDE3]" : "border-[#0B5135]/[.07]"}`}
               >
                 <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#DCEDE3] text-[#0B5135]"><MapPin className="size-5" aria-hidden="true" /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-extrabold text-[#083D29]">{point.name}</span>
                   <span className="block text-xs text-[#646A67]">{point.categoryLabel}</span>
                 </span>
-                <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-[#297A56] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => focusPoint(point.id)}
+                    aria-label={`Ver ${point.name} no mapa`}
+                    className="grid size-9 place-items-center rounded-full bg-[#E7F2EA] text-[#0B5135] hover:bg-[#DCEDE3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#297A56]"
+                  >
+                    <LocateFixed aria-hidden="true" className="size-4" />
+                  </button>
+                  <Link
+                    href={`/explorar/${encodeURIComponent(point.id)}`}
+                    aria-label={`Abrir perfil de ${point.name}`}
+                    className="grid size-9 place-items-center rounded-full text-[#297A56] hover:bg-[#E7F2EA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#297A56]"
+                  >
+                    <ArrowUpRight aria-hidden="true" className="size-4" />
+                  </Link>
+                </div>
+              </article>
             ))}
           </div>
         </div>
