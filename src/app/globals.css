@@ -50,3 +50,23 @@ button,a{touch-action:manipulation}
   font-family:var(--font-sans);
   font-size:9px!important;
 }
+
+/* MapCN-inspired presentation, adapted for CAPITÃO on top of its existing
+   MapLibre engine and OpenFreeMap basemap (no CARTO API dependency). */
+.maplibregl-ctrl-top-right{top:10px;right:10px}
+.maplibregl-ctrl-group{
+  background:rgb(255 255 255 / 95%)!important;
+  border:1px solid rgb(8 61 41 / 12%)!important;
+  border-radius:16px!important;
+  box-shadow:0 12px 28px rgb(8 61 41 / 14%)!important;
+  backdrop-filter:blur(14px);
+}
+.maplibregl-ctrl-group button{width:39px;height:39px}
+.maplibregl-ctrl-group button:hover{background:#eef7f1}
+.maplibregl-ctrl-group button:focus-visible{outline:2px solid #297a56;outline-offset:-3px}
+.maplibregl-ctrl-group button+button{border-top:1px solid #e5ece7}
+.maplibregl-marker{filter:drop-shadow(0 3px 5px rgb(8 61 41 / 12%))}
+.maplibregl-popup-close-button:focus-visible{outline:2px solid #297a56}
+@media(prefers-reduced-motion:reduce){
+  .maplibregl-marker,.maplibregl-ctrl-group button{transition:none!important}
+}
