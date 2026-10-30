@@ -82,6 +82,21 @@ export function MapDirectoryExplorer({ points }: { points: CapitaoMapPoint[] }) 
           <h2 className="text-base font-extrabold text-[#083D29]">Descubra no mapa</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {filtered.map((point) => (
+              <div key={point.id} className="flex items-stretch gap-2">
+                <button
+                  type="button"
+                  aria-label={`Mostrar ${point.name} no mapa`}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("capitao-map:focus-point", {
+                      detail: { containerId: "directory-map", id: point.id },
+                    }));
+                    document.getElementById("directory-map")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                  className="flex shrink-0 items-center gap-1 rounded-2xl border border-[#0B5135]/10 bg-[#EAF4ED] px-3 text-xs font-bold text-[#0B5135] shadow-sm transition hover:bg-[#DCEDE3] focus-visible:outline-2 focus-visible:outline-[#297A56]"
+                >
+                  <MapPin aria-hidden="true" className="size-4" />
+                  <span className="sr-only">Ver no mapa</span>
+                </button>
               <Link
                 href={`/explorar/${encodeURIComponent(point.id)}`}
                 key={point.id}
@@ -94,6 +109,7 @@ export function MapDirectoryExplorer({ points }: { points: CapitaoMapPoint[] }) 
                 </span>
                 <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-[#297A56] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Link>
+              </div>
             ))}
           </div>
         </div>
