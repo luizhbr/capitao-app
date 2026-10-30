@@ -27,12 +27,12 @@ const markerTone: Record<string, string> = {
 };
 
 const markerGlyph: Record<string, string> = {
-  commerce: "●",
-  food: "●",
-  services: "●",
-  tourism: "●",
-  producer: "●",
-  tech: "●",
+  commerce: "C",
+  food: "F",
+  services: "S",
+  tourism: "T",
+  producer: "P",
+  tech: "T",
 };
 
 function makeMarkerElement(point?: CapitaoMapPoint, picker = false) {
@@ -56,6 +56,7 @@ function makeMarkerElement(point?: CapitaoMapPoint, picker = false) {
   pin.style.border = "3px solid rgba(255,255,255,.95)";
   pin.style.background = picker ? "#083D29" : markerTone[point?.category ?? ""] ?? "#0B5135";
   pin.style.boxShadow = "0 8px 22px rgba(8,61,41,.25)";
+  pin.style.transition = "box-shadow .2s ease, scale .2s ease";
   pin.style.display = "grid";
   pin.style.placeItems = "center";
 
@@ -68,6 +69,7 @@ function makeMarkerElement(point?: CapitaoMapPoint, picker = false) {
 
   pin.appendChild(dot);
   wrapper.appendChild(pin);
+  wrapper.className = "capitao-map-marker";
   return wrapper;
 }
 
@@ -300,6 +302,7 @@ export function CapitaoMap({
 
         if (mode === "directory") {
           map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+          map.addControl(new maplibregl.FullscreenControl(), "top-right");
         }
       });
     }
