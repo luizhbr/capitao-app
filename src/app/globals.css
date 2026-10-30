@@ -50,3 +50,13 @@ button,a{touch-action:manipulation}
   font-family:var(--font-sans);
   font-size:9px!important;
 }
+
+/* CAPITÃO map: MapCN-inspired surfaces, adapted for our OpenFreeMap style. */
+.capitao-map-marker{outline-offset:4px}
+.capitao-map-marker:hover>span,.capitao-map-marker:focus-visible>span{scale:1.12;box-shadow:0 12px 26px rgb(8 61 41 / 30%)!important}
+.capitao-map-marker:focus-visible{outline:3px solid #297a56;border-radius:50%}
+.maplibregl-ctrl-group button{width:36px;height:36px}
+.maplibregl-ctrl-fullscreen,.maplibregl-ctrl-shrink{background-color:rgb(255 255 255 / 94%)}
+@media(prefers-reduced-motion:reduce){
+  .capitao-map-marker>span{transition:none!important}
+}
